@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.wms_backend.mapper.InboundDetailMapper">
+    <!-- 新增入库明细 -->
+    <insert id="insert" parameterType="org.example.wms_backend.entity.InboundDetail" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO inboundDetail (
+            inboundId, goodsCode, inboundQuantity, batchNo, warehouseCode,
+            createTime, updateTime, isDeleted
+        ) VALUES (
+            #{inboundId}, #{goodsCode}, #{inboundQuantity}, #{batchNo}, #{warehouseCode},
+            NOW(), NOW(), 0
+        )
+    </insert>
+    
+    <!-- 根据主键查询入库明细 -->
+    <select id="selectByPrimaryKey" parameterType="java.lang.Integer" resultType="org.example.wms_backend.entity.InboundDetail">
+        SELECT * FROM inboundDetail WHERE id = #{id} AND isDeleted = 0
+    </select>
+    
+    <!-- 根据仓库编码查询入库明细 -->
+    <select id="selectByWarehouseCode" parameterType="java.lang.String" resultType="org.example.wms_backend.entity.InboundDetail">
+        SELECT * FROM inboundDetail WHERE warehouseCode = #{warehouseCode} AND isDeleted = 0
+    </select>
+    
+    <!-- 根据商品编码查询入库明细 -->
+    <select id="selectByGoodsCode" parameterType="java.lang.String" resultType="org.example.wms_backend.entity.InboundDetail">
+        SELECT * FROM inboundDetail WHERE goodsCode = #{goodsCode} AND isDeleted = 0
+    </select>
+    
+    <!-- 根据批次号查询入库明细 -->
+    <select id="selectByBatchNo" parameterType="java.lang.String" resultType="org.example.wms_backend.entity.InboundDetail">
+        SELECT * FROM inboundDetail WHERE batchNo = #{batchNo} AND isDeleted = 0
+    </select>
+    
+    <!-- 根据入库单ID查询 -->
+    <select id="selectByInboundId" parameterType="java.lang.String" resultType="org.example.wms_backend.entity.InboundDetail">
+        SELECT * FROM inboundDetail WHERE inboundId = #{inboundId} AND isDeleted = 0
+    </select>
+    
+    <!-- 逻辑删除入库明细 -->
+    <update id="updateIsDeletedByInboundId">
+        UPDATE inboundDetail SET isDeleted = #{isDeleted}, updateTime = NOW()
+        WHERE inboundId = #{inboundId}
+    </update>
+    
+    <!-- 查询所有入库明细 -->
+    <select id="selectAll" resultType="org.example.wms_backend.entity.InboundDetail">
+        SELECT * FROM inboundDetail WHERE isDeleted = 0
+    </select>
+
+    <!-- 统计近一周内每个商品入库总数量 -->
+    <select id="selectWeeklyInboundStatistic" resultType="org.example.wms_backend.entity.GoodsInboundStatistic">
+        SELECT 
+            i.goodsCode AS goodsCode,
+            g.goodsName AS goodsName,
+            SUM(i.inboundQuantity) AS totalInboundQuantity
+        FROM inboundDetail i
+        LEFT JOIN goods g ON i.goodsCode = g.goodsCode
+        WHERE i.isDeleted = 0
+          AND i.createTime &gt;= DATE_SUB(NOW(), INTERVAL 7 DAY)
+        GROUP BY i.goodsCode, g.goodsName
+        ORDER BY totalInboundQuantity DESC
+    </select>
+
+    <!-- 统计近7天每天入库总数量 -->
+    <select id="selectDailyInboundStatistic" resultType="org.example.wms_backend.entity.DailyInboundStatistic">
+        SELECT 
+            DATE_FORMAT(i.createTime, '%Y-%m-%d') AS date,
+            SUM(i.inboundQuantity) AS quantity
+        FROM inboundDetail i
+        WHERE i.isDeleted = 0
+          AND i.createTime &gt;= DATE_SUB(NOW(), INTERVAL 7 DAY)
+        GROUP BY DATE_FORMAT(i.createTime, '%Y-%m-%d')
+        ORDER BY date ASC
+    </select>
+
+    <!-- 按分类统计入库 -->
+    <select id="selectCategoryInboundStatistics" resultType="org.example.wms_backend.entity.CategoryInOutStatistic">
+        SELECT 
+            gc.id AS categoryId,
+            gc.categoryName AS categoryName,
+            SUM(i.inboundQuantity) AS totalInbound,
+            0 AS totalOutbound
+        FROM inboundDetail i
+        LEFT JOIN goods g ON i.goodsCode = g.goodsCode
+        LEFT JOIN goodsCategory gc ON g.categoryId = gc.id
+        WHERE i.isDeleted = 0
+          AND i.createTime &gt;= DATE_SUB(NOW(), INTERVAL #{days} DAY)
+        GROUP BY gc.id, gc.categoryName
+        ORDER BY totalInbound DESC
+    </select>
+
+    <!-- 每日出入库统计 -->
+    <select id="selectDailyInboundOutboundStatistics" resultType="org.example.wms_backend.entity.DailyInOutStatistic">
+        SELECT 
+            t.date,
+            COALESCE(SUM(i.inboundQuantity), 0) AS totalInbound,
+            COALESCE(SUM(o.outboundQuantity), 0) AS totalOutbound
+        FROM (
+            SELECT DATE_FORMAT(createTime, '%Y-%m-%d') AS date
+            FROM inboundDetail
+            WHERE isDeleted = 0 AND createTime &gt;= DATE_SUB(NOW(), INTERVAL #{days} DAY)
+            GROUP BY DATE_FORMAT(createTime, '%Y-%m-%d')
+            UNION
+            SELECT DATE_FORMAT(createTime, '%Y-%m-%d') AS date
+            FROM outboundDetail
+            WHERE isDeleted = 0 AND createTime &gt;= DATE_SUB(NOW(), INTERVAL #{days} DAY)
+            GROUP BY DATE_FORMAT(createTime, '%Y-%m-%d')
+        ) t
+        LEFT JOIN inboundDetail i ON DATE_FORMAT(i.createTime, '%Y-%m-%d') = t.date AND i.isDeleted = 0
+        LEFT JOIN outboundDetail o ON DATE_FORMAT(o.createTime, '%Y-%m-%d') = t.date AND o.isDeleted = 0
+        GROUP BY t.date
+        ORDER BY t.date ASC
+    </select>
+
+    <!-- 分页查询入库明细 -->
+    <select id="selectByPage" resultType="org.example.wms_backend.entity.InboundDetail">
+        SELECT * FROM inboundDetail WHERE isDeleted = 0 LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 查询入库明细总数 -->
+    <select id="selectCount" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM inboundDetail WHERE isDeleted = 0
+    </select>
+
+    <!-- 根据商品编码模糊查询分页 -->
+    <select id="selectByGoodsCodeLikePage" resultType="org.example.wms_backend.entity.InboundDetail">
+        SELECT * FROM inboundDetail WHERE goodsCode LIKE CONCAT('%', #{goodsCode}, '%') AND isDeleted = 0 LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 根据商品编码模糊查询总数 -->
+    <select id="selectCountByGoodsCodeLike" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM inboundDetail WHERE goodsCode LIKE CONCAT('%', #{goodsCode}, '%') AND isDeleted = 0
+    </select>
+
+    <!-- 根据仓库编码分页查询 -->
+    <select id="selectByWarehouseCodePage" resultType="org.example.wms_backend.entity.InboundDetail">
+        SELECT * FROM inboundDetail WHERE warehouseCode LIKE CONCAT('%', #{warehouseCode}, '%') AND isDeleted = 0 LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 根据仓库编码查询总数 -->
+    <select id="selectCountByWarehouseCode" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM inboundDetail WHERE warehouseCode LIKE CONCAT('%', #{warehouseCode}, '%') AND isDeleted = 0
+    </select>
+
+    <!-- 根据批次号分页查询 -->
+    <select id="selectByBatchNoPage" resultType="org.example.wms_backend.entity.InboundDetail">
+        SELECT * FROM inboundDetail WHERE batchNo LIKE CONCAT('%', #{batchNo}, '%') AND isDeleted = 0 LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 根据批次号查询总数 -->
+    <select id="selectCountByBatchNo" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM inboundDetail WHERE batchNo LIKE CONCAT('%', #{batchNo}, '%') AND isDeleted = 0
+    </select>
+
+    <!-- 根据入库单ID分页查询 -->
+    <select id="selectByInboundIdPage" resultType="org.example.wms_backend.entity.InboundDetail">
+        SELECT * FROM inboundDetail WHERE inboundId LIKE CONCAT('%', #{inboundId}, '%') AND isDeleted = 0 LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 根据入库单ID查询总数 -->
+    <select id="selectCountByInboundId" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM inboundDetail WHERE inboundId LIKE CONCAT('%', #{inboundId}, '%') AND isDeleted = 0
+    </select>
+</mapper>

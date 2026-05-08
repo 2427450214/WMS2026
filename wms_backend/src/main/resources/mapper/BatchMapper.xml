@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.wms_backend.mapper.BatchMapper">
+    <insert id="insert" parameterType="org.example.wms_backend.entity.Batch" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO batch (batchNo, goodsCode, productionDate, expiryDate, batchQuantity, remainingQuantity, warehouseCode, status, createTime, updateTime, isDeleted)
+        VALUES (#{batchNo}, #{goodsCode}, #{productionDate}, #{expiryDate}, #{batchQuantity}, #{remainingQuantity}, #{warehouseCode}, #{status}, #{createTime}, #{updateTime}, #{isDeleted})
+    </insert>
+
+    <update id="updateByPrimaryKey" parameterType="org.example.wms_backend.entity.Batch">
+        UPDATE batch
+        SET batchNo = #{batchNo}, goodsCode = #{goodsCode}, productionDate = #{productionDate}, expiryDate = #{expiryDate},
+            batchQuantity = #{batchQuantity}, remainingQuantity = #{remainingQuantity}, warehouseCode = #{warehouseCode},
+            status = #{status}, updateTime = #{updateTime}
+        WHERE id = #{id}
+        AND isDeleted = 0
+    </update>
+
+    <select id="selectByPrimaryKey" parameterType="java.lang.Integer" resultType="org.example.wms_backend.entity.Batch">
+        SELECT * FROM batch
+        WHERE id = #{id}
+        AND isDeleted = 0
+    </select>
+
+    <select id="selectByBatchCode" parameterType="java.lang.String" resultType="org.example.wms_backend.entity.Batch">
+        SELECT * FROM batch
+        WHERE batchNo = #{batchCode}
+        AND isDeleted = 0
+    </select>
+
+    <select id="selectByGoodsCode" parameterType="java.lang.String" resultType="org.example.wms_backend.entity.Batch">
+        SELECT * FROM batch
+        WHERE goodsCode = #{goodsCode}
+        AND isDeleted = 0
+    </select>
+
+    <select id="selectByWarehouseCode" parameterType="java.lang.String" resultType="org.example.wms_backend.entity.Batch">
+        SELECT * FROM batch
+        WHERE warehouseCode = #{warehouseCode}
+        AND isDeleted = 0
+    </select>
+
+    <select id="selectByGoodsCodeAndWarehouseCode" resultType="org.example.wms_backend.entity.Batch">
+        SELECT * FROM batch
+        WHERE goodsCode = #{goodsCode}
+        AND warehouseCode = #{warehouseCode}
+        AND isDeleted = 0
+        AND remainingQuantity > 0
+    </select>
+
+    <select id="selectByStatus" parameterType="java.lang.String" resultType="org.example.wms_backend.entity.Batch">
+        SELECT * FROM batch
+        WHERE status = #{status}
+        AND isDeleted = 0
+    </select>
+
+    <select id="selectByCreateTime" parameterType="java.util.Date" resultType="org.example.wms_backend.entity.Batch">
+        SELECT * FROM batch
+        WHERE createTime = #{createTime}
+        AND isDeleted = 0
+    </select>
+
+    <update id="updateIsDeletedByBatchCode" parameterType="java.lang.String">
+        UPDATE batch
+        SET isDeleted = 1
+        WHERE batchNo = #{batchCode}
+    </update>
+<!-- 查询所有批次 -->
+    <select id="selectAll" resultType="org.example.wms_backend.entity.Batch">
+        SELECT * FROM batch WHERE isDeleted = 0
+    </select>
+    
+    <!-- 查询到期日期接近的批次（到期时间距离现在时间少于30天） -->
+    <select id="selectNearExpiryBatches" resultType="org.example.wms_backend.entity.Batch">
+        SELECT * FROM batch
+        WHERE isDeleted = 0
+        AND expiryDate IS NOT NULL
+        AND expiryDate BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 30 DAY)
+    </select>
+
+    <!-- 查询到期日期接近一个月的批次（到期时间距离现在时间少于30天） -->
+    <select id="selectNearExpiryBatchesOneMonth" resultType="org.example.wms_backend.entity.Batch">
+        SELECT * FROM batch
+        WHERE isDeleted = 0
+        AND expiryDate IS NOT NULL
+        AND expiryDate BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 30 DAY)
+        ORDER BY expiryDate ASC
+    </select>
+
+    <!-- 更新已过期的批次状态（状态为正常但过期日期已过的批次改为过期） -->
+    <update id="updateExpiredBatchStatus">
+        UPDATE batch
+        SET status = '过期', updateTime = NOW()
+        WHERE isDeleted = 0
+        AND status = '正常'
+        AND expiryDate IS NOT NULL
+        AND expiryDate &lt; NOW()
+    </update>
+
+    <!-- 查询已过期的批次 -->
+    <select id="selectExpiredBatches" resultType="org.example.wms_backend.entity.Batch">
+        SELECT * FROM batch
+        WHERE isDeleted = 0
+        AND status = '过期'
+        AND expiryDate IS NOT NULL
+        AND expiryDate &lt; NOW()
+        ORDER BY expiryDate ASC
+    </select>
+
+    <!-- 批次剩余库存统计 -->
+    <select id="selectBatchRemainingStatistics" resultType="org.example.wms_backend.entity.BatchRemainingStatistic">
+        SELECT 
+            b.batchNo AS batchNo,
+            g.goodsCode AS goodsCode,
+            g.goodsName AS goodsName,
+            b.batchQuantity AS batchQuantity,
+            b.remainingQuantity AS remainingQuantity,
+            b.expiryDate AS expiryDate
+        FROM batch b
+        LEFT JOIN goods g ON b.goodsCode = g.goodsCode
+        WHERE b.isDeleted = 0
+        ORDER BY b.remainingQuantity ASC
+    </select>
+
+    <!-- 批次过期预警统计 - 按时间段分组统计 -->
+    <select id="selectBatchExpiryStatistics" resultType="org.example.wms_backend.entity.BatchExpiryStatistic">
+        SELECT 
+            CASE 
+                WHEN DATEDIFF(b.expiryDate, NOW()) &lt;= 0 THEN '已过期'
+                WHEN DATEDIFF(b.expiryDate, NOW()) &lt;= 7 THEN '7天内'
+                WHEN DATEDIFF(b.expiryDate, NOW()) &lt;= 30 THEN '30天内'
+                ELSE '30天后'
+            END AS period,
+            COUNT(b.id) AS count
+        FROM batch b
+        WHERE b.isDeleted = 0
+          AND b.expiryDate IS NOT NULL
+        GROUP BY 
+            CASE 
+                WHEN DATEDIFF(b.expiryDate, NOW()) &lt;= 0 THEN '已过期'
+                WHEN DATEDIFF(b.expiryDate, NOW()) &lt;= 7 THEN '7天内'
+                WHEN DATEDIFF(b.expiryDate, NOW()) &lt;= 30 THEN '30天内'
+                ELSE '30天后'
+            END
+    </select>
+
+    <!-- 分页查询批次 -->
+    <select id="selectByPage" resultType="org.example.wms_backend.entity.Batch">
+        SELECT * FROM batch WHERE isDeleted = 0 LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 查询批次总数 -->
+    <select id="selectCount" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM batch WHERE isDeleted = 0
+    </select>
+
+    <!-- 根据批次号模糊查询分页 -->
+    <select id="selectByBatchNoLikePage" resultType="org.example.wms_backend.entity.Batch">
+        SELECT * FROM batch WHERE batchNo LIKE CONCAT('%', #{batchNo}, '%') AND isDeleted = 0 LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 根据批次号模糊查询总数 -->
+    <select id="selectCountByBatchNoLike" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM batch WHERE batchNo LIKE CONCAT('%', #{batchNo}, '%') AND isDeleted = 0
+    </select>
+
+    <!-- 根据仓库编码分页查询 -->
+    <select id="selectByWarehouseCodePage" resultType="org.example.wms_backend.entity.Batch">
+        SELECT * FROM batch WHERE warehouseCode = #{warehouseCode} AND isDeleted = 0 LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 根据仓库编码查询总数 -->
+    <select id="selectCountByWarehouseCode" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM batch WHERE warehouseCode = #{warehouseCode} AND isDeleted = 0
+    </select>
+
+    <!-- 根据商品编码分页查询 -->
+    <select id="selectByGoodsCodePage" resultType="org.example.wms_backend.entity.Batch">
+        SELECT * FROM batch WHERE goodsCode LIKE CONCAT('%', #{goodsCode}, '%') AND isDeleted = 0 LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 根据商品编码查询总数 -->
+    <select id="selectCountByGoodsCode" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM batch WHERE goodsCode LIKE CONCAT('%', #{goodsCode}, '%') AND isDeleted = 0
+    </select>
+
+    <!-- 根据状态分页查询 -->
+    <select id="selectByStatusPage" resultType="org.example.wms_backend.entity.Batch">
+        SELECT * FROM batch WHERE status = #{status} AND isDeleted = 0 LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 根据状态查询总数 -->
+    <select id="selectCountByStatus" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM batch WHERE status = #{status} AND isDeleted = 0
+    </select>
+
+    <!-- 分页查询接近过期一个月的批次 -->
+    <select id="selectNearExpiryBatchesOneMonthPage" resultType="org.example.wms_backend.entity.Batch">
+        SELECT * FROM batch
+        WHERE isDeleted = 0
+        AND expiryDate IS NOT NULL
+        AND expiryDate BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 30 DAY)
+        ORDER BY expiryDate ASC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 查询接近过期一个月的批次总数 -->
+    <select id="selectCountNearExpiryBatchesOneMonth" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM batch
+        WHERE isDeleted = 0
+        AND expiryDate IS NOT NULL
+        AND expiryDate BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 30 DAY)
+    </select>
+
+    <!-- 分页查询已过期的批次 -->
+    <select id="selectExpiredBatchesPage" resultType="org.example.wms_backend.entity.Batch">
+        SELECT * FROM batch
+        WHERE isDeleted = 0
+        AND status = '过期'
+        AND expiryDate IS NOT NULL
+        AND expiryDate &lt; NOW()
+        ORDER BY expiryDate ASC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 查询已过期的批次总数 -->
+    <select id="selectCountExpiredBatches" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM batch
+        WHERE isDeleted = 0
+        AND status = '过期'
+        AND expiryDate IS NOT NULL
+        AND expiryDate &lt; NOW()
+    </select>
+</mapper>

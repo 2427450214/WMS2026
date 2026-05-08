@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.example.wms_backend.mapper.GoodsCategoryMapper">
+    <!-- 新增商品分类 -->
+    <insert id="insert" parameterType="org.example.wms_backend.entity.GoodsCategory">
+        INSERT INTO goodsCategory (
+            categoryName,
+            createTime,
+            updateTime,
+            isDeleted
+        ) VALUES (
+            #{categoryName},
+            NOW(),
+            NOW(),
+            0
+        )
+    </insert>
+    
+    <!-- 根据主键ID修改商品分类 -->
+    <update id="updateByPrimaryKey" parameterType="org.example.wms_backend.entity.GoodsCategory">
+        UPDATE goodsCategory SET
+            categoryName = #{categoryName},
+            updateTime = NOW()
+        WHERE id = #{id}
+    </update>
+    
+
+    
+    <!-- 根据主键ID查询商品分类 -->
+    <select id="selectByPrimaryKey" parameterType="java.lang.Integer" resultType="org.example.wms_backend.entity.GoodsCategory">
+        SELECT * FROM goodsCategory WHERE id = #{id} AND isDeleted = 0
+    </select>
+    
+    <!-- 查询所有商品分类 -->
+    <select id="selectAll" resultType="org.example.wms_backend.entity.GoodsCategory">
+        SELECT * FROM goodsCategory WHERE isDeleted = 0
+    </select>
+    
+    <!-- 根据商品分类名称查询 -->
+    <select id="selectByCategoryName" parameterType="java.lang.String" resultType="org.example.wms_backend.entity.GoodsCategory">
+        SELECT * FROM goodsCategory WHERE categoryName LIKE CONCAT('%', #{categoryName}, '%') AND isDeleted = 0
+    </select>
+    
+    <!-- 逻辑删除功能 -->
+    <update id="updateIsDeleted" parameterType="java.lang.Integer">
+        UPDATE goodsCategory SET
+            isDeleted = #{isDeleted},
+            updateTime = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 分页查询商品分类 -->
+    <select id="selectByPage" resultType="org.example.wms_backend.entity.GoodsCategory">
+        SELECT * FROM goodsCategory WHERE isDeleted = 0 LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 查询商品分类总数 -->
+    <select id="selectCount" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM goodsCategory WHERE isDeleted = 0
+    </select>
+
+    <!-- 按分类名模糊查询分页 -->
+    <select id="selectByCategoryNamePage" resultType="org.example.wms_backend.entity.GoodsCategory">
+        SELECT * FROM goodsCategory WHERE categoryName LIKE CONCAT('%', #{categoryName}, '%') AND isDeleted = 0 LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 按分类名模糊查询总数 -->
+    <select id="selectCountByCategoryName" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM goodsCategory WHERE categoryName LIKE CONCAT('%', #{categoryName}, '%') AND isDeleted = 0
+    </select>
+</mapper>

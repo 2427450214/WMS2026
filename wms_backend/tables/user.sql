@@ -1,0 +1,11 @@
+CREATE TABLE user (
+  `id` INT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',
+  `account` VARCHAR(50) COMMENT '账号',
+  `name` VARCHAR(50) COMMENT '姓名',
+  `password` VARCHAR(100) COMMENT '密码',
+  `permissionLevel` INT COMMENT '权限等级',
+  `accountStatus` VARCHAR(20) COMMENT '账号状态',
+  `createTime` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updateTime` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
+  `isDeleted` TINYINT DEFAULT 0 COMMENT '逻辑删除属性，0表示未删除，1表示已删除'
+) COMMENT '用户表';

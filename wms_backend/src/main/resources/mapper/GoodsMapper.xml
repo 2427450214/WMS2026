@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.wms_backend.mapper.GoodsMapper">
+    <!-- 插入商品 -->
+    <insert id="insert" parameterType="org.example.wms_backend.entity.Goods">
+        INSERT INTO goods (
+            goodsName,
+            goodsCode,
+            categoryId,
+            stockQuantity,
+            shelfLife,
+            minStockWarning,
+            maxStockWarning,
+            createTime,
+            updateTime,
+            isDeleted
+        ) VALUES (
+            #{goodsName},
+            #{goodsCode},
+            #{categoryId},
+            #{stockQuantity},
+            #{shelfLife},
+            #{minStockWarning},
+            #{maxStockWarning},
+            #{createTime},
+            #{updateTime},
+            #{isDeleted}
+        )
+    </insert>
+    
+    <!-- 更新商品 -->
+    <update id="updateByPrimaryKey" parameterType="org.example.wms_backend.entity.Goods">
+        UPDATE goods SET
+            goodsName = #{goodsName},
+            goodsCode = #{goodsCode},
+            categoryId = #{categoryId},
+            stockQuantity = #{stockQuantity},
+            shelfLife = #{shelfLife},
+            minStockWarning = #{minStockWarning},
+            maxStockWarning = #{maxStockWarning},
+            updateTime = #{updateTime},
+            isDeleted = #{isDeleted}
+        WHERE id = #{id}
+    </update>
+    
+    <!-- 查询整个商品表全部数据 -->
+    <select id="selectAll" resultType="org.example.wms_backend.entity.Goods">
+        SELECT * FROM goods WHERE isDeleted = 0
+    </select>
+    
+    <!-- 根据商品编码查询商品 -->
+    <select id="selectByGoodsCode" parameterType="java.lang.String" resultType="org.example.wms_backend.entity.Goods">
+        SELECT * FROM goods WHERE goodsCode = #{goodsCode} AND isDeleted = 0
+    </select>
+    
+    <!-- 根据商品名进行模糊查询 -->
+    <select id="selectByGoodsNameLike" parameterType="java.lang.String" resultType="org.example.wms_backend.entity.Goods">
+        SELECT * FROM goods WHERE goodsName LIKE CONCAT('%', #{goodsName}, '%') AND isDeleted = 0
+    </select>
+    
+    <!-- 根据分类查询商品 -->
+    <select id="selectByCategoryId" parameterType="java.lang.Integer" resultType="org.example.wms_backend.entity.Goods">
+        SELECT * FROM goods WHERE categoryId = #{categoryId} AND isDeleted = 0
+    </select>
+    
+    <!-- 修改逻辑删除 -->
+    <update id="updateIsDeletedByGoodsCode">
+        UPDATE goods SET
+            isDeleted = #{isDeleted},
+            updateTime = NOW()
+        WHERE goodsCode = #{goodsCode}
+    </update>
+    
+    <!-- 根据库存数量排序 -->
+    <select id="selectOrderByStockQuantity" parameterType="java.lang.Boolean" resultType="org.example.wms_backend.entity.Goods">
+        SELECT * FROM goods WHERE isDeleted = 0 ORDER BY stockQuantity
+        <if test="asc == true">
+            ASC
+        </if>
+        <if test="asc == false">
+            DESC
+        </if>
+    </select>
+    
+    <!-- 查询库存量接近最低库存预警线+100的商品 -->
+    <select id="selectNearMinStockWarning" resultType="org.example.wms_backend.entity.Goods">
+        SELECT * FROM goods WHERE stockQuantity BETWEEN minStockWarning AND minStockWarning + 100 AND isDeleted = 0
+    </select>
+    
+    <!-- 查询库存接近最高库存线的商品（达到最大库存量的90%） -->
+    <select id="selectNearMaxStockWarning" resultType="org.example.wms_backend.entity.Goods">
+        SELECT * FROM goods WHERE stockQuantity &gt;= maxStockWarning * 0.9 AND stockQuantity &lt;= maxStockWarning AND isDeleted = 0
+    </select>
+    
+    <!-- 修改商品信息（只能修改商品名称，分类，库存数量，保质期，最低库存预警线，最高库存预警线） -->
+    <update id="updateGoodsInfoByGoodsCode" parameterType="org.example.wms_backend.entity.Goods">
+        UPDATE goods SET
+            goodsName = #{goodsName},
+            categoryId = #{categoryId},
+            stockQuantity = #{stockQuantity},
+            shelfLife = #{shelfLife},
+            minStockWarning = #{minStockWarning},
+            maxStockWarning = #{maxStockWarning},
+            updateTime = NOW()
+        WHERE goodsCode = #{goodsCode}
+    </update>
+    
+    <!-- 更新商品库存数量 -->
+    <update id="updateStockQuantity">
+        UPDATE goods
+        SET stockQuantity = stockQuantity + #{quantity},
+            updateTime = NOW()
+        WHERE goodsCode = #{goodsCode}
+    </update>
+
+    <!-- 查询库存数量最多的前N个商品 -->
+    <select id="selectTopStockGoods" resultType="org.example.wms_backend.entity.Goods">
+        SELECT * FROM goods
+        WHERE isDeleted = 0
+        ORDER BY stockQuantity DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 按分类统计库存 -->
+    <select id="selectCategoryStockStatistics" resultType="org.example.wms_backend.entity.CategoryStockStatistic">
+        SELECT 
+            gc.id AS categoryId,
+            gc.categoryName AS categoryName,
+            SUM(g.stockQuantity) AS totalStock
+        FROM goods g
+        LEFT JOIN goodsCategory gc ON g.categoryId = gc.id
+        WHERE g.isDeleted = 0
+        GROUP BY gc.id, gc.categoryName
+    </select>
+
+    <!-- 库存预警统计 -->
+    <select id="selectStockWarningStatistics" resultType="org.example.wms_backend.entity.StockWarningStatistic">
+        SELECT 
+            g.goodsCode AS goodsCode,
+            g.goodsName AS goodsName,
+            g.stockQuantity AS stockQuantity,
+            g.minStockWarning AS minStockWarning,
+            g.maxStockWarning AS maxStockWarning,
+            CASE 
+                WHEN g.stockQuantity &lt;= g.minStockWarning THEN 'LOW'
+                WHEN g.stockQuantity &gt;= g.maxStockWarning THEN 'HIGH'
+                ELSE 'NORMAL'
+            END AS warningType
+        FROM goods g
+        WHERE g.isDeleted = 0
+          AND (g.stockQuantity &lt;= g.minStockWarning OR g.stockQuantity &gt;= g.maxStockWarning)
+    </select>
+
+    <!-- 库存周转率统计 -->
+    <select id="selectStockTurnoverStatistics" resultType="org.example.wms_backend.entity.StockTurnoverStatistic">
+        SELECT 
+            g.goodsCode AS goodsCode,
+            g.goodsName AS goodsName,
+            COALESCE(SUM(o.outboundQuantity), 0) AS totalOutbound,
+            AVG(g.stockQuantity) AS avgStock,
+            CASE 
+                WHEN g.stockQuantity &gt; 0 THEN COALESCE(SUM(o.outboundQuantity), 0) / g.stockQuantity
+                ELSE 0
+            END AS turnoverRate
+        FROM goods g
+        LEFT JOIN outboundDetail o ON g.goodsCode = o.goodsCode 
+            AND o.isDeleted = 0 
+            AND o.createTime &gt;= DATE_SUB(NOW(), INTERVAL #{days} DAY)
+        WHERE g.isDeleted = 0
+        GROUP BY g.goodsCode, g.goodsName, g.stockQuantity
+    </select>
+
+    <!-- 热门商品统计（近30天出库最多的商品） -->
+    <select id="selectHotGoodsStatistics" resultType="org.example.wms_backend.entity.HotGoodsStatistic">
+        SELECT 
+            g.goodsCode AS goodsCode,
+            g.goodsName AS goodsName,
+            SUM(o.outboundQuantity) AS totalOutbound
+        FROM goods g
+        LEFT JOIN outboundDetail o ON g.goodsCode = o.goodsCode 
+            AND o.isDeleted = 0 
+            AND o.createTime &gt;= DATE_SUB(NOW(), INTERVAL 30 DAY)
+        WHERE g.isDeleted = 0
+        GROUP BY g.goodsCode, g.goodsName
+        ORDER BY totalOutbound DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 滞销商品统计（近30天无出库的商品） -->
+    <select id="selectSlowMovingGoodsStatistics" resultType="org.example.wms_backend.entity.SlowMovingGoodsStatistic">
+        SELECT 
+            g.goodsCode AS goodsCode,
+            g.goodsName AS goodsName,
+            g.stockQuantity AS stockQuantity,
+            (
+                SELECT MAX(o.createTime) 
+                FROM outboundDetail o 
+                WHERE o.goodsCode = g.goodsCode AND o.isDeleted = 0
+            ) AS lastOutboundTime
+        FROM goods g
+        WHERE g.isDeleted = 0
+          AND g.stockQuantity &gt; 0
+          AND NOT EXISTS (
+              SELECT 1 FROM outboundDetail o 
+              WHERE o.goodsCode = g.goodsCode 
+                AND o.isDeleted = 0 
+                AND o.createTime &gt;= DATE_SUB(NOW(), INTERVAL 30 DAY)
+          )
+    </select>
+
+    <!-- 每日库存趋势统计 -->
+    <select id="selectDailyStockTrendStatistics" resultType="org.example.wms_backend.entity.DailyStockTrendStatistic">
+        SELECT 
+            DATE_FORMAT(i.createTime, '%Y-%m-%d') AS date,
+            COALESCE(SUM(i.inboundQuantity), 0) AS totalStock
+        FROM inboundDetail i
+        WHERE i.isDeleted = 0
+          AND i.createTime &gt;= DATE_SUB(NOW(), INTERVAL #{days} DAY)
+        GROUP BY DATE_FORMAT(i.createTime, '%Y-%m-%d')
+        ORDER BY date ASC
+    </select>
+
+    <!-- 分页查询商品 -->
+    <select id="selectByPage" resultType="org.example.wms_backend.entity.Goods">
+        SELECT * FROM goods WHERE isDeleted = 0 LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 查询商品总数 -->
+    <select id="selectCount" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM goods WHERE isDeleted = 0
+    </select>
+
+    <!-- 按商品名模糊查询分页 -->
+    <select id="selectByGoodsNameLikePage" resultType="org.example.wms_backend.entity.Goods">
+        SELECT * FROM goods WHERE goodsName LIKE CONCAT('%', #{goodsName}, '%') AND isDeleted = 0 LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 按商品名模糊查询总数 -->
+    <select id="selectCountByGoodsNameLike" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM goods WHERE goodsName LIKE CONCAT('%', #{goodsName}, '%') AND isDeleted = 0
+    </select>
+
+    <!-- 按分类查询分页 -->
+    <select id="selectByCategoryIdPage" resultType="org.example.wms_backend.entity.Goods">
+        SELECT * FROM goods WHERE categoryId = #{categoryId} AND isDeleted = 0 LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 按分类查询总数 -->
+    <select id="selectCountByCategoryId" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM goods WHERE categoryId = #{categoryId} AND isDeleted = 0
+    </select>
+</mapper>

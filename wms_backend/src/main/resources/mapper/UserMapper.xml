@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.wms_backend.mapper.UserMapper">
+    <insert id="insert" parameterType="org.example.wms_backend.entity.User">
+        INSERT INTO user (account, name, password, permissionLevel, accountStatus, createTime, updateTime, isDeleted)
+        VALUES (#{account}, #{name}, #{password}, #{permissionLevel}, #{accountStatus}, #{createTime}, #{updateTime}, #{isDeleted})
+    </insert>
+
+    <select id="selectByAccount" parameterType="java.lang.String" resultType="org.example.wms_backend.entity.User">
+        SELECT * FROM user
+        WHERE account = #{account}
+    </select>
+
+    <select id="selectByName" parameterType="java.lang.String" resultType="org.example.wms_backend.entity.User">
+        SELECT * FROM user
+        WHERE name = #{name}
+    </select>
+
+    <select id="selectByAccountStatus" parameterType="java.lang.String" resultType="org.example.wms_backend.entity.User">
+        SELECT * FROM user
+        WHERE (accountStatus = #{accountStatus} OR (isDeleted = 1 AND #{accountStatus} = '封禁') OR (isDeleted = 0 AND #{accountStatus} = '启用'))
+    </select>
+
+    <select id="selectByPermissionLevel" parameterType="java.lang.Integer" resultType="org.example.wms_backend.entity.User">
+        SELECT * FROM user
+        WHERE permissionLevel = #{permissionLevel}
+    </select>
+
+    <select id="selectPermissionLevelByAccount" parameterType="java.lang.String" resultType="java.lang.Integer">
+        SELECT permissionLevel FROM user
+        WHERE account = #{account}
+    </select>
+
+    <update id="updateIsDeletedByAccount" parameterType="java.lang.String">
+        UPDATE user
+        SET isDeleted = CASE WHEN isDeleted = 1 THEN 0 ELSE 1 END,
+            accountStatus = CASE WHEN isDeleted = 1 THEN '启用' ELSE '封禁' END,
+            updateTime = NOW()
+        WHERE account = #{account}
+    </update>
+
+    <select id="selectAll" resultType="org.example.wms_backend.entity.User">
+        SELECT * FROM user
+    </select>
+
+    <update id="updateByPrimaryKey" parameterType="org.example.wms_backend.entity.User">
+        UPDATE user SET
+            name = #{name},
+            password = #{password},
+            permissionLevel = #{permissionLevel},
+            accountStatus = #{accountStatus},
+            updateTime = #{updateTime},
+            isDeleted = #{isDeleted}
+        WHERE account = #{account}
+    </update>
+
+    <!-- 分页查询用户 -->
+    <select id="selectByPage" resultType="org.example.wms_backend.entity.User">
+        SELECT * FROM user LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 查询用户总数 -->
+    <select id="selectCount" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM user
+    </select>
+
+    <!-- 按姓名模糊查询分页 -->
+    <select id="selectByNamePage" resultType="org.example.wms_backend.entity.User">
+        SELECT * FROM user WHERE name LIKE CONCAT('%', #{name}, '%') LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 按姓名模糊查询总数 -->
+    <select id="selectCountByName" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM user WHERE name LIKE CONCAT('%', #{name}, '%')
+    </select>
+</mapper>

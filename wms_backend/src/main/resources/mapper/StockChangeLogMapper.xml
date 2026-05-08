@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.wms_backend.mapper.StockChangeLogMapper">
+    <!-- 插入库存变动日志 -->
+    <insert id="insert" parameterType="org.example.wms_backend.entity.StockChangeLog">
+        INSERT INTO stockChangeLog (
+            goodsCode,
+            warehouseCode,
+            beforeQuantity,
+            changeQuantity,
+            afterQuantity,
+            operationType,
+            inOutDetailCode,
+            account,
+            userName,
+            operationTime,
+            createTime,
+            updateTime,
+            isDeleted
+        ) VALUES (
+            #{goodsCode},
+            #{warehouseCode},
+            #{beforeQuantity},
+            #{changeQuantity},
+            #{afterQuantity},
+            #{operationType},
+            #{inOutDetailCode},
+            #{account},
+            #{userName},
+            #{operationTime},
+            #{createTime},
+            #{updateTime},
+            #{isDeleted}
+        )
+    </insert>
+    
+    <!-- 查询所有库存变动日志 -->
+    <select id="selectAll" resultType="org.example.wms_backend.entity.StockChangeLog">
+        SELECT * FROM stockChangeLog WHERE isDeleted = 0
+    </select>
+    
+    <!-- 根据商品编码查询库存变动日志 -->
+    <select id="selectByGoodsCode" parameterType="java.lang.String" resultType="org.example.wms_backend.entity.StockChangeLog">
+        SELECT * FROM stockChangeLog WHERE goodsCode = #{goodsCode} AND isDeleted = 0
+    </select>
+    
+    <!-- 根据仓库编码查询库存变动日志 -->
+    <select id="selectByWarehouseCode" parameterType="java.lang.String" resultType="org.example.wms_backend.entity.StockChangeLog">
+        SELECT * FROM stockChangeLog WHERE warehouseCode = #{warehouseCode} AND isDeleted = 0
+    </select>
+    
+    <!-- 根据操作类型查询库存变动日志 -->
+    <select id="selectByOperationType" parameterType="java.lang.String" resultType="org.example.wms_backend.entity.StockChangeLog">
+        SELECT * FROM stockChangeLog WHERE operationType = #{operationType} AND isDeleted = 0
+    </select>
+    
+    <!-- 根据账号查询库存变动日志 -->
+    <select id="selectByAccount" parameterType="java.lang.String" resultType="org.example.wms_backend.entity.StockChangeLog">
+        SELECT * FROM stockChangeLog WHERE account = #{account} AND isDeleted = 0
+    </select>
+    
+    <!-- 逻辑删除库存变动日志 -->
+    <update id="updateIsDeletedById">
+        UPDATE stockChangeLog SET
+            isDeleted = 1,
+            updateTime = NOW()
+        WHERE id = #{id}
+    </update>
+    
+    <!-- 根据出入库详情编码逻辑删除库存变动日志 -->
+    <update id="updateIsDeletedByInOutDetailCode">
+        UPDATE stockChangeLog SET
+            isDeleted = 1,
+            updateTime = NOW()
+        WHERE inOutDetailCode = #{inOutDetailCode} AND isDeleted = 0
+    </update>
+    
+    <!-- 根据用户名称查找库存变动日志 -->
+    <select id="selectByUserName" parameterType="java.lang.String" resultType="org.example.wms_backend.entity.StockChangeLog">
+        SELECT * FROM stockChangeLog WHERE userName = #{userName} AND isDeleted = 0
+    </select>
+    
+    <!-- 根据出入库详细表查找库存变动日志 -->
+    <select id="selectByInOutDetailCode" parameterType="java.lang.String" resultType="org.example.wms_backend.entity.StockChangeLog">
+        SELECT * FROM stockChangeLog WHERE inOutDetailCode = #{inOutDetailCode} AND isDeleted = 0
+    </select>
+    
+    <!-- 根据主键更新库存变动日志 -->
+    <update id="updateByPrimaryKey" parameterType="org.example.wms_backend.entity.StockChangeLog">
+        UPDATE stockChangeLog SET
+            goodsCode = #{goodsCode},
+            warehouseCode = #{warehouseCode},
+            beforeQuantity = #{beforeQuantity},
+            changeQuantity = #{changeQuantity},
+            afterQuantity = #{afterQuantity},
+            operationType = #{operationType},
+            inOutDetailCode = #{inOutDetailCode},
+            account = #{account},
+            userName = #{userName},
+            operationTime = #{operationTime},
+            updateTime = NOW()
+        WHERE id = #{id}
+    </update>
+    
+    <!-- 根据主键删除库存变动日志 -->
+    <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer">
+        DELETE FROM stockChangeLog WHERE id = #{id}
+    </delete>
+    
+    <!-- 根据主键查找库存变动日志 -->
+    <select id="selectByPrimaryKey" parameterType="java.lang.Integer" resultType="org.example.wms_backend.entity.StockChangeLog">
+        SELECT * FROM stockChangeLog WHERE id = #{id} AND isDeleted = 0
+    </select>
+
+    <!-- 分页查询库存变动日志 -->
+    <select id="selectByPage" resultType="org.example.wms_backend.entity.StockChangeLog">
+        SELECT * FROM stockChangeLog WHERE isDeleted = 0 ORDER BY operationTime DESC LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 查询库存变动日志总数 -->
+    <select id="selectCount" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM stockChangeLog WHERE isDeleted = 0
+    </select>
+
+    <!-- 根据商品编码模糊查询分页 -->
+    <select id="selectByGoodsCodeLikePage" resultType="org.example.wms_backend.entity.StockChangeLog">
+        SELECT * FROM stockChangeLog WHERE goodsCode LIKE CONCAT('%', #{goodsCode}, '%') AND isDeleted = 0 ORDER BY operationTime DESC LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 根据商品编码模糊查询总数 -->
+    <select id="selectCountByGoodsCodeLike" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM stockChangeLog WHERE goodsCode LIKE CONCAT('%', #{goodsCode}, '%') AND isDeleted = 0
+    </select>
+
+    <!-- 根据操作类型模糊查询分页 -->
+    <select id="selectByOperationTypeLikePage" resultType="org.example.wms_backend.entity.StockChangeLog">
+        SELECT * FROM stockChangeLog WHERE operationType LIKE CONCAT('%', #{operationType}, '%') AND isDeleted = 0 ORDER BY operationTime DESC LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 根据操作类型模糊查询总数 -->
+    <select id="selectCountByOperationTypeLike" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM stockChangeLog WHERE operationType LIKE CONCAT('%', #{operationType}, '%') AND isDeleted = 0
+    </select>
+
+    <!-- 根据仓库编码模糊查询分页 -->
+    <select id="selectByWarehouseCodeLikePage" resultType="org.example.wms_backend.entity.StockChangeLog">
+        SELECT * FROM stockChangeLog WHERE warehouseCode LIKE CONCAT('%', #{warehouseCode}, '%') AND isDeleted = 0 ORDER BY operationTime DESC LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 根据仓库编码模糊查询总数 -->
+    <select id="selectCountByWarehouseCodeLike" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM stockChangeLog WHERE warehouseCode LIKE CONCAT('%', #{warehouseCode}, '%') AND isDeleted = 0
+    </select>
+
+    <!-- 根据用户名称模糊查询分页 -->
+    <select id="selectByUserNameLikePage" resultType="org.example.wms_backend.entity.StockChangeLog">
+        SELECT * FROM stockChangeLog WHERE userName LIKE CONCAT('%', #{userName}, '%') AND isDeleted = 0 ORDER BY operationTime DESC LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 根据用户名称模糊查询总数 -->
+    <select id="selectCountByUserNameLike" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM stockChangeLog WHERE userName LIKE CONCAT('%', #{userName}, '%') AND isDeleted = 0
+    </select>
+
+    <!-- 根据账号模糊查询分页 -->
+    <select id="selectByAccountLikePage" resultType="org.example.wms_backend.entity.StockChangeLog">
+        SELECT * FROM stockChangeLog WHERE account LIKE CONCAT('%', #{account}, '%') AND isDeleted = 0 ORDER BY operationTime DESC LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 根据账号模糊查询总数 -->
+    <select id="selectCountByAccountLike" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM stockChangeLog WHERE account LIKE CONCAT('%', #{account}, '%') AND isDeleted = 0
+    </select>
+
+    <!-- 根据出入库详情编码模糊查询分页 -->
+    <select id="selectByInOutDetailCodeLikePage" resultType="org.example.wms_backend.entity.StockChangeLog">
+        SELECT * FROM stockChangeLog WHERE inOutDetailCode LIKE CONCAT('%', #{inOutDetailCode}, '%') AND isDeleted = 0 ORDER BY operationTime DESC LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 根据出入库详情编码模糊查询总数 -->
+    <select id="selectCountByInOutDetailCodeLike" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM stockChangeLog WHERE inOutDetailCode LIKE CONCAT('%', #{inOutDetailCode}, '%') AND isDeleted = 0
+    </select>
+</mapper>

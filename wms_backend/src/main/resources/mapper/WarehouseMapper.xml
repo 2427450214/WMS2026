@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.example.wms_backend.mapper.WarehouseMapper">
+    <!-- 新增仓库 -->
+    <insert id="insert" parameterType="org.example.wms_backend.entity.Warehouse" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO warehouse (
+            warehouseName,
+            warehouseCode,
+            status,
+            warehouseType,
+            createTime,
+            updateTime,
+            isDeleted
+        ) VALUES (
+            #{warehouseName},
+            #{warehouseCode},
+            #{status},
+            #{warehouseType},
+            NOW(),
+            NOW(),
+            0
+        )
+    </insert>
+    
+    <!-- 根据仓库编码修改仓库（不能修改仓库编码） -->
+    <update id="updateByWarehouseCode" parameterType="org.example.wms_backend.entity.Warehouse">
+        UPDATE warehouse SET
+            warehouseName = #{warehouseName},
+            status = #{status},
+            warehouseType = #{warehouseType},
+            updateTime = NOW()
+        WHERE warehouseCode = #{warehouseCode}
+    </update>
+    
+
+    
+    <!-- 根据仓库编码查询仓库 -->
+    <select id="selectByWarehouseCode" parameterType="java.lang.String" resultType="org.example.wms_backend.entity.Warehouse">
+        SELECT * FROM warehouse WHERE warehouseCode = #{warehouseCode} AND isDeleted = 0
+    </select>
+    
+    <!-- 查询所有仓库 -->
+    <select id="selectAll" resultType="org.example.wms_backend.entity.Warehouse">
+        SELECT * FROM warehouse WHERE isDeleted = 0
+    </select>
+    
+    <!-- 根据仓库状态查询仓库 -->
+    <select id="selectByStatus" parameterType="java.lang.String" resultType="org.example.wms_backend.entity.Warehouse">
+        SELECT * FROM warehouse WHERE status = #{status} AND isDeleted = 0
+    </select>
+    
+    <!-- 根据仓库类型查询仓库 -->
+    <select id="selectByWarehouseType" parameterType="java.lang.String" resultType="org.example.wms_backend.entity.Warehouse">
+        SELECT * FROM warehouse WHERE warehouseType = #{warehouseType} AND isDeleted = 0
+    </select>
+    
+    <!-- 根据仓库名称模糊查询仓库 -->
+    <select id="selectByWarehouseNameLike" parameterType="java.lang.String" resultType="org.example.wms_backend.entity.Warehouse">
+        SELECT * FROM warehouse WHERE warehouseName LIKE CONCAT('%', #{warehouseName}, '%') AND isDeleted = 0
+    </select>
+    
+    <!-- 逻辑删除功能 -->
+    <update id="updateIsDeletedByWarehouseCode">
+        UPDATE warehouse SET
+            isDeleted = #{isDeleted},
+            updateTime = NOW()
+        WHERE warehouseCode = #{warehouseCode}
+    </update>
+
+    <!-- 按仓库统计库存 -->
+    <select id="selectWarehouseStockStatistics" resultType="org.example.wms_backend.entity.WarehouseStockStatistic">
+        SELECT 
+            w.warehouseCode AS warehouseCode,
+            w.warehouseName AS warehouseName,
+            COUNT(DISTINCT g.id) AS productCount,
+            COALESCE(SUM(g.stockQuantity), 0) AS totalStock,
+            COUNT(DISTINCT b.id) AS batchCount
+        FROM warehouse w
+        LEFT JOIN batch b ON w.warehouseCode = b.warehouseCode AND b.isDeleted = 0
+        LEFT JOIN goods g ON b.goodsCode = g.goodsCode AND g.isDeleted = 0
+        WHERE w.isDeleted = 0
+        GROUP BY w.warehouseCode, w.warehouseName
+    </select>
+
+    <!-- 分页查询仓库 -->
+    <select id="selectByPage" resultType="org.example.wms_backend.entity.Warehouse">
+        SELECT * FROM warehouse WHERE isDeleted = 0 ORDER BY createTime DESC LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 查询仓库总数 -->
+    <select id="selectCount" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM warehouse WHERE isDeleted = 0
+    </select>
+
+    <!-- 根据仓库名称模糊查询分页 -->
+    <select id="selectByWarehouseNameLikePage" resultType="org.example.wms_backend.entity.Warehouse">
+        SELECT * FROM warehouse WHERE warehouseName LIKE CONCAT('%', #{warehouseName}, '%') AND isDeleted = 0 ORDER BY createTime DESC LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 根据仓库名称模糊查询总数 -->
+    <select id="selectCountByWarehouseNameLike" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM warehouse WHERE warehouseName LIKE CONCAT('%', #{warehouseName}, '%') AND isDeleted = 0
+    </select>
+
+    <!-- 根据仓库编码分页查询 -->
+    <select id="selectByWarehouseCodePage" resultType="org.example.wms_backend.entity.Warehouse">
+        SELECT * FROM warehouse WHERE warehouseCode LIKE CONCAT('%', #{warehouseCode}, '%') AND isDeleted = 0 ORDER BY createTime DESC LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 根据仓库编码查询总数 -->
+    <select id="selectCountByWarehouseCode" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM warehouse WHERE warehouseCode LIKE CONCAT('%', #{warehouseCode}, '%') AND isDeleted = 0
+    </select>
+</mapper>

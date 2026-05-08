@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.wms_backend.mapper.OperationLogMapper">
+    <!-- 插入操作日志 -->
+    <insert id="insert" parameterType="org.example.wms_backend.entity.OperationLog">
+        INSERT INTO operationLog (
+            account,
+            operationType,
+            operationDetail,
+            createTime,
+            updateTime,
+            isDeleted
+        ) VALUES (
+            #{account},
+            #{operationType},
+            #{operationDetail},
+            #{createTime},
+            #{updateTime},
+            #{isDeleted}
+        )
+    </insert>
+    
+    <!-- 删除超过三天的操作日志 -->
+    <delete id="deleteOldLogs">
+        DELETE FROM operationLog WHERE createTime &lt; DATE_SUB(NOW(), INTERVAL 3 DAY)
+    </delete>
+
+    <!-- 查询所有操作日志 -->
+    <select id="selectAll" resultType="org.example.wms_backend.entity.OperationLog">
+        SELECT * FROM operationLog WHERE isDeleted = 0 ORDER BY createTime DESC
+    </select>
+
+    <!-- 根据操作类型查询操作日志 -->
+    <select id="selectByOperationType" parameterType="string" resultType="org.example.wms_backend.entity.OperationLog">
+        SELECT * FROM operationLog WHERE operationType = #{operationType} AND isDeleted = 0 ORDER BY createTime DESC
+    </select>
+
+    <!-- 根据用户账号查询操作日志 -->
+    <select id="selectByAccount" parameterType="string" resultType="org.example.wms_backend.entity.OperationLog">
+        SELECT * FROM operationLog WHERE account = #{account} AND isDeleted = 0 ORDER BY createTime DESC
+    </select>
+
+    <!-- 用户活跃度统计 -->
+    <select id="selectUserActivityStatistics" resultType="org.example.wms_backend.entity.UserActivityStatistic">
+        SELECT 
+            o.account AS account,
+            u.name AS userName,
+            COUNT(o.id) AS operationCount,
+            MAX(o.createTime) AS lastOperationTime
+        FROM operationLog o
+        LEFT JOIN user u ON o.account = u.account
+        WHERE o.isDeleted = 0
+          AND o.createTime &gt;= DATE_SUB(NOW(), INTERVAL #{days} DAY)
+        GROUP BY o.account, u.name
+        ORDER BY operationCount DESC
+    </select>
+
+    <!-- 操作类型统计 -->
+    <select id="selectOperationTypeStatistics" resultType="org.example.wms_backend.entity.OperationTypeStatistic">
+        SELECT 
+            o.operationType AS operationType,
+            COUNT(o.id) AS count
+        FROM operationLog o
+        WHERE o.isDeleted = 0
+          AND o.createTime &gt;= DATE_SUB(NOW(), INTERVAL #{days} DAY)
+        GROUP BY o.operationType
+        ORDER BY count DESC
+    </select>
+
+    <!-- 分页查询操作日志 -->
+    <select id="selectByPage" resultType="org.example.wms_backend.entity.OperationLog">
+        SELECT * FROM operationLog WHERE isDeleted = 0 ORDER BY createTime DESC LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 查询操作日志总数 -->
+    <select id="selectCount" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM operationLog WHERE isDeleted = 0
+    </select>
+
+    <!-- 根据操作类型模糊查询分页 -->
+    <select id="selectByOperationTypeLikePage" resultType="org.example.wms_backend.entity.OperationLog">
+        SELECT * FROM operationLog WHERE operationType LIKE CONCAT('%', #{operationType}, '%') AND isDeleted = 0 ORDER BY createTime DESC LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 根据操作类型模糊查询总数 -->
+    <select id="selectCountByOperationTypeLike" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM operationLog WHERE operationType LIKE CONCAT('%', #{operationType}, '%') AND isDeleted = 0
+    </select>
+
+    <!-- 根据用户账号模糊查询分页 -->
+    <select id="selectByAccountLikePage" resultType="org.example.wms_backend.entity.OperationLog">
+        SELECT * FROM operationLog WHERE account LIKE CONCAT('%', #{account}, '%') AND isDeleted = 0 ORDER BY createTime DESC LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 根据用户账号模糊查询总数 -->
+    <select id="selectCountByAccountLike" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM operationLog WHERE account LIKE CONCAT('%', #{account}, '%') AND isDeleted = 0
+    </select>
+</mapper>
