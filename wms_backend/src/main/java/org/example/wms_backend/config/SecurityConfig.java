@@ -133,13 +133,11 @@ public class SecurityConfig {
                             boolean isAdmin = authentication.getAuthorities().stream()
                                     .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
                             
-                            // 只有管理员登录时才更新已过期的批次状态
-                            if (isAdmin) {
-                                try {
-                                    batchService.updateExpiredBatchStatus();
-                                } catch (Exception e) {
-                                    // 忽略更新过期批次的异常
-                                }
+                            // 任何用户登录时都更新已过期的批次状态
+                            try {
+                                batchService.updateExpiredBatchStatus();
+                            } catch (Exception e) {
+                                // 忽略更新过期批次的异常
                             }
                             
                             // 构建返回信息

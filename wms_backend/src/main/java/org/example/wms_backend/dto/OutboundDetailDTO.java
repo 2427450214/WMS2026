@@ -41,7 +41,7 @@ public class OutboundDetailDTO {
      * 批次号
      */
     @NotNull(message = "批次号不能为空")
-    @Pattern(regexp = "^LOT[a-zA-Z0-9]{3}\\d{4}$", message = "批次号格式不正确")
+    @Pattern(regexp = "^LOT[a-zA-Z0-9]{3}\\d{6}$", message = "批次号格式不正确，应为LOT+3位字符+6位日期(如LOT5Ep260429)")
     private String batchNo;
 
     /**

@@ -46,7 +46,7 @@ export default {
           console.log('StockWarning - 数据:', this.data)
           this.loading = false
         } else {
-          this.error = true
+          this.data = []
           this.loading = false
         }
       } catch (err) {

@@ -53,7 +53,7 @@
           <td :class="{ 'low-stock': isLowStock(goods), 'high-stock': isHighStock(goods) }">
             {{ goods.stockQuantity }}
           </td>
-          <td>{{ goods.shelfLife }}</td>
+          <td>{{ goods.shelfLife === 0 ? '无限期' : goods.shelfLife }}</td>
           <td>{{ goods.minStockAlert }}</td>
           <td>{{ goods.maxStockAlert }}</td>
           <td v-if="userRole === '管理员'">
@@ -102,7 +102,8 @@
           </div>
           <div class="form-group">
             <label>保质期(天)</label>
-            <input v-model="form.shelfLife" type="number" min="1" required />
+            <input v-model="form.shelfLife" type="number" min="0" required />
+            <span class="hint">填写0表示无限期</span>
           </div>
           <div class="form-group">
             <label>最低库存预警</label>
@@ -154,7 +155,7 @@ export default {
         goodsName: '',
         categoryId: '',
         stockQuantity: 0,
-        shelfLife: 1,
+        shelfLife: 0,
         minStockAlert: 0,
         maxStockAlert: 0
       },
@@ -305,7 +306,7 @@ export default {
         goodsName: goods.goodsName,
         categoryId: goods.categoryId,
         stockQuantity: goods.stockQuantity || 0,
-        shelfLife: goods.shelfLife || 1,
+        shelfLife: goods.shelfLife || 0,
         minStockAlert: goods.minStockAlert || 0,
         maxStockAlert: goods.maxStockAlert || 0
       }
@@ -377,7 +378,7 @@ export default {
         goodsName: '',
         categoryId: '',
         stockQuantity: 0,
-        shelfLife: 1,
+        shelfLife: 0,
         minStockAlert: 0,
         maxStockAlert: 0
       }
@@ -626,6 +627,13 @@ export default {
   border: 1px solid #ddd;
   border-radius: 4px;
   box-sizing: border-box;
+}
+
+.form-group .hint {
+  display: block;
+  font-size: 12px;
+  color: #999;
+  margin-top: 4px;
 }
 
 .form-buttons {

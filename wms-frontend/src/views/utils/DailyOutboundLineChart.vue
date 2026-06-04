@@ -44,7 +44,7 @@ export default {
           await this.$nextTick()
           this.renderChart()
         } else {
-          this.error = true
+          this.data = []
           this.loading = false
         }
       } catch (err) {
